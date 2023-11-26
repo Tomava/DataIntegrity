@@ -4,6 +4,7 @@ import json
 import hashlib
 import datetime
 import sys
+import Notify
 
 LOG_DIR = "log"
 DATA_DIR = "data"
@@ -70,6 +71,7 @@ class Checker:
         new_object = create_data_object(file_hash, modification_time)
         with open(self.error_file, "a", encoding="utf-8") as file:
             file.write(f"{file_path}: OLD: {data_object} != NEW: {new_object}\n")
+        Notify.send("Corruption", file_path)
 
     def check_integrity(self, file_path, file_hash, modification_time):
         data_object = self.database.get(file_path)
