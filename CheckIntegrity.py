@@ -33,6 +33,7 @@ class Checker:
         self.error_file = os.path.join(ERROR_DIR, f"{datetime.datetime.now()}.log")
         self.last_save_time = datetime.datetime.now()
         self.log_file = os.path.join(LOG_DIR, f"{datetime.datetime.now()}.log")
+        self.log_message(Level.INFO, f"Started with {len(self.handled_files)} files already checked")
 
     def log_message(self, level: Level, message):
         with open(self.log_file, "a", encoding="utf-8") as file:
