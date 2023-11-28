@@ -14,6 +14,7 @@ DATABASE_FILE = os.path.join(DATA_DIR, "db.json")
 DATABASE_BACKUP_FILE = os.path.join(DATA_DIR, "db_backup.json")
 # How often to save the handled files in seconds
 SAVE_FREQUENCY = 300
+DAYS_BETWEEN_RUNS = 14
 
 
 class Level(Enum):
@@ -34,7 +35,9 @@ class Checker:
         self.error_file = os.path.join(ERROR_DIR, f"{datetime.datetime.now()}.log")
         self.last_save_time = datetime.datetime.now()
         self.log_file = os.path.join(LOG_DIR, f"{datetime.datetime.now()}.log")
-        self.log_message(Level.INFO, f"Started with {len(self.handled_files)} files already checked")
+        self.log_message(
+            Level.INFO, f"Started with {len(self.handled_files)} files already checked"
+        )
 
     def log_message(self, level: Level, message):
         with open(self.log_file, "a", encoding="utf-8") as file:
@@ -149,11 +152,37 @@ class Checker:
         self.remove_non_existing()
 
 
+def check_enough_time_between(days_between):
+    """
+    Check if there is no unfinished run (latest.log doesn't exist) and that enough time has passed since last run. 
+    """
+    if os.path.exists(LATEST_FILE):
+        print(f"A previous run was unfinished as {LATEST_FILE} exists. Continuing.")
+        return True
+    print(f"No run was unfinished as file {LATEST_FILE} doesn't exist.")
+
+    # Get the creation time of the most recently created file in the log dir
+    latest_file = max([f for f in os.listdir(LOG_DIR)], key=lambda f: os.path.getctime(os.path.join(LOG_DIR, f)))
+    latest_file_path = os.path.join(LOG_DIR, latest_file)
+    creation_time = os.path.getctime(latest_file_path)
+
+    # Check if the file was created less than days_between days ago
+    time_delta = datetime.datetime.now() - datetime.datetime.fromtimestamp(creation_time)
+    if time_delta > days_between:
+        print(f"There were more than {days_between} days since last run. Starting a new one.")
+        return True
+    print(f"There was a run {days_between} days ago. Not running now.")
+    return False
+
+
 def main():
     if len(sys.argv) < 2:
         print("No root dir given!")
         return
     root_dir = sys.argv[1]
+    if not check_enough_time_between(DAYS_BETWEEN_RUNS):
+        print(f"Not running on {datetime.datetime.now()}")
+        return
     print(f"Starting on {datetime.datetime.now()}")
     checker = Checker()
     checker.check_dir(root_dir)
