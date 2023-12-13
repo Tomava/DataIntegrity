@@ -14,6 +14,7 @@ DATABASE_FILE = os.path.join(DATA_DIR, "db.json")
 DATABASE_BACKUP_FILE = os.path.join(DATA_DIR, "db_backup.json")
 # How often to save the handled files in seconds
 SAVE_FREQUENCY = 300
+# Default value
 DAYS_BETWEEN_RUNS = 14
 
 
@@ -180,7 +181,16 @@ def main():
         print("No root dir given!")
         return
     root_dir = sys.argv[1]
-    if not check_enough_time_between(DAYS_BETWEEN_RUNS):
+    # Default value
+    days_between_runs = DAYS_BETWEEN_RUNS
+    # Optional argument
+    if len(sys.argv) == 3:
+        try:
+            days_between_runs = int(sys.argv[2])
+        except ValueError:
+            print("Invalid integer value given for days between runs!")
+            return
+    if not check_enough_time_between(days_between_runs):
         print(f"Not running on {datetime.datetime.now()}")
         return
     print(f"Starting on {datetime.datetime.now()}")
