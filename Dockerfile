@@ -13,5 +13,6 @@ COPY .env ./
 RUN pip3.11 install -r requirements.txt
 
 ENV FILE_PATH=/home
+ENV DAYS_BETWEEN=14
 
-CMD ["sh", "-c", "python3 CheckIntegrity.py $FILE_PATH"]
+CMD ["sh", "-c", "python3 CheckIntegrity.py $FILE_PATH $DAYS_BETWEEN"]
