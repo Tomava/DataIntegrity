@@ -1,0 +1,17 @@
+services:
+  script:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - /media:/media
+      - /home/debian/DataIntegrity/data:/home/scripter/data
+      - /home/debian/DataIntegrity/errors:/home/scripter/errors
+      - /home/debian/DataIntegrity/log:/home/scripter/log
+      - /etc/localtime:/etc/localtime
+    logging:
+      driver: "json-file"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FILE_PATH=/media
+      - DAYS_BETWEEN=-1
