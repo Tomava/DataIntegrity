@@ -149,7 +149,7 @@ class Checker:
 
     def save_finished(self):
         with open(FINISHED_FILE, "w", encoding="utf-8") as file:
-            file.write(self.started)
+            file.write(f"{self.started}\n")
 
     def clean_up(self):
         if os.path.isfile(LATEST_FILE):
