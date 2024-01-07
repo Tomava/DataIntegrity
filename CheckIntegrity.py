@@ -10,6 +10,7 @@ LOG_DIR = "log"
 DATA_DIR = "data"
 ERROR_DIR = "errors"
 LATEST_FILE = os.path.join(LOG_DIR, "latest.log")
+FINISHED_FILE = os.path.join(DATA_DIR, "finished.txt")
 DATABASE_FILE = os.path.join(DATA_DIR, "db.json")
 DATABASE_BACKUP_FILE = os.path.join(DATA_DIR, "db_backup.json")
 # How often to save the handled files in seconds
@@ -31,11 +32,12 @@ def create_data_object(file_hash, modification_time):
 class Checker:
     def __init__(self) -> None:
         self.database = self.get_database()
+        self.started = datetime.datetime.now()
         # This allows to continue from unfinished run
         self.handled_files = self.get_checked_files()
-        self.error_file = os.path.join(ERROR_DIR, f"{datetime.datetime.now()}.log")
-        self.last_save_time = datetime.datetime.now()
-        self.log_file = os.path.join(LOG_DIR, f"{datetime.datetime.now()}.log")
+        self.error_file = os.path.join(ERROR_DIR, f"{self.started}.log")
+        self.last_save_time = self.started
+        self.log_file = os.path.join(LOG_DIR, f"{self.started}.log")
         self.log_message(
             Level.INFO, f"Started with {len(self.handled_files)} files already checked"
         )
@@ -145,12 +147,18 @@ class Checker:
             json.dump(new_db, file)
         os.remove(DATABASE_BACKUP_FILE)
 
+    def save_finished(self):
+        with open(FINISHED_FILE, "w", encoding="utf-8") as file:
+            file.write(self.started)
+
     def clean_up(self):
         if os.path.isfile(LATEST_FILE):
             self.log_message(Level.INFO, f"Removing {LATEST_FILE}")
             os.remove(LATEST_FILE)
         self.log_message(Level.INFO, "Removing non-existing")
         self.remove_non_existing()
+        self.log_message(Level.INFO, "Saving finished file")
+        self.save_finished()
 
 
 def check_enough_time_between(days_between):
@@ -162,18 +170,23 @@ def check_enough_time_between(days_between):
         return True
     print(f"No run was unfinished as file {LATEST_FILE} doesn't exist.")
 
-    # Get the creation time of the most recently created file in the log dir
-    latest_file = max([f for f in os.listdir(LOG_DIR)], key=lambda f: os.path.getctime(os.path.join(LOG_DIR, f)))
-    latest_file_path = os.path.join(LOG_DIR, latest_file)
-    creation_time = os.path.getctime(latest_file_path)
+    if os.path.exists(FINISHED_FILE):
+        with open(FINISHED_FILE, "r", encoding="utf-8") as file:
+            finished_time_str = file.readline()
+        try:
+            finished_time = datetime.datetime.fromisoformat(finished_time_str.strip())
+            time_delta = (datetime.datetime.now() - finished_time).days
+            if time_delta > days_between:
+                print(f"There were more than {days_between} days since last run. Starting a new one.")
+                return True
+            print(f"There was a finished run {time_delta} days ago. Not running now.")
+            return False
+        except ValueError as e:
+            print(f"Error while reading last finished time: {e}")
+            return True
 
-    # Check if the file was created less than days_between days ago
-    time_delta = datetime.datetime.now() - datetime.datetime.fromtimestamp(creation_time)
-    if time_delta > days_between:
-        print(f"There were more than {days_between} days since last run. Starting a new one.")
-        return True
-    print(f"There was a run {days_between} days ago. Not running now.")
-    return False
+    print("There was no finished file. Running now.")
+    return True
 
 
 def main():

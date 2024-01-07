@@ -1,5 +1,6 @@
 *.json
 *.log
+*.txt
 .env
 start.sh
 __pycache__/
