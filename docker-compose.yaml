@@ -1,0 +1,15 @@
+services:
+  script:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ${FILE_PATH}:/media/Data
+      - ${ROOT_DATA_DIR_PATH}:/home/scripter/data
+      - /etc/localtime:/etc/localtime
+    logging:
+      driver: "json-file"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FILE_PATH=/media/Data
+      - DAYS_BETWEEN=${DAYS_BETWEEN}

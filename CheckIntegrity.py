@@ -5,18 +5,16 @@ import hashlib
 import datetime
 import sys
 import Notify
-
-LOG_DIR = "log"
-DATA_DIR = "data"
-ERROR_DIR = "errors"
-LATEST_FILE = os.path.join(LOG_DIR, "latest.log")
-FINISHED_FILE = os.path.join(DATA_DIR, "finished.txt")
-DATABASE_FILE = os.path.join(DATA_DIR, "db.json")
-DATABASE_BACKUP_FILE = os.path.join(DATA_DIR, "db_backup.json")
-# How often to save the handled files in seconds
-SAVE_FREQUENCY = 300
-# Default value
-DAYS_BETWEEN_RUNS = 14
+from Config import (
+    LOG_DIR,
+    ERROR_DIR,
+    LATEST_FILE,
+    FINISHED_FILE,
+    DATABASE_FILE,
+    DATABASE_BACKUP_FILE,
+    SAVE_FREQUENCY,
+    DAYS_BETWEEN_RUNS,
+)
 
 
 class Level(Enum):
@@ -163,7 +161,7 @@ class Checker:
 
 def check_enough_time_between(days_between):
     """
-    Check if there is no unfinished run (latest.log doesn't exist) and that enough time has passed since last run. 
+    Check if there is no unfinished run (latest.log doesn't exist) and that enough time has passed since last run.
     """
     if os.path.exists(LATEST_FILE):
         print(f"A previous run was unfinished as {LATEST_FILE} exists. Continuing.")
@@ -177,7 +175,9 @@ def check_enough_time_between(days_between):
             finished_time = datetime.datetime.fromisoformat(finished_time_str.strip())
             time_delta = (datetime.datetime.now() - finished_time).days
             if time_delta > days_between:
-                print(f"There were more than {days_between} days since last run. Starting a new one.")
+                print(
+                    f"There were more than {days_between} days since last run. Starting a new one."
+                )
                 return True
             print(f"There was a finished run {time_delta} days ago. Not running now.")
             return False
