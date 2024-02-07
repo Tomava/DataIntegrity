@@ -126,6 +126,9 @@ class Checker:
         try:
             for item in os.listdir(dir_path):
                 full_path = os.path.join(dir_path, item)
+                # Skip symlinks
+                if os.path.islink(full_path):
+                    continue
                 if os.path.isdir(full_path):
                     self.check_dir(full_path)
                 else:
