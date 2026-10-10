@@ -12,7 +12,7 @@ from Config import (
     FINISHED_FILE,
     DATABASE_FILE,
     DATABASE_BACKUP_FILE,
-    SAVE_FREQUENCY,
+    SAVE_FREQUENCY_SECONDS,
     DAYS_BETWEEN_RUNS,
 )
 
@@ -33,9 +33,11 @@ class Checker:
         self.started = datetime.datetime.now()
         # This allows to continue from unfinished run
         self.handled_files = self.get_checked_files()
-        self.error_file = os.path.join(ERROR_DIR, f"{self.started}.log")
+        self.error_file = os.path.join(
+            ERROR_DIR, f"{int(self.started.timestamp())}.log"
+        )
         self.last_save_time = self.started
-        self.log_file = os.path.join(LOG_DIR, f"{self.started}.log")
+        self.log_file = os.path.join(LOG_DIR, f"{int(self.started.timestamp())}.log")
         self.log_message(
             Level.INFO, f"Started with {len(self.handled_files)} files already checked"
         )
@@ -43,8 +45,9 @@ class Checker:
     def log_message(self, level: Level, message):
         with open(self.log_file, "a", encoding="utf-8") as file:
             file.write(
-                f"{int(datetime.datetime.now().timestamp())}: {level.name}: {message}\n"
+                f"{datetime.datetime.now().isoformat()}: {level.name}: {message}\n"
             )
+            print(f"{level.name}: {message}")
 
     def get_database(self):
         # If database backup exists, the last save was not successful
@@ -53,12 +56,12 @@ class Checker:
             with open(DATABASE_BACKUP_FILE, "r", encoding="utf-8") as file:
                 db = json.load(file)
             with open(DATABASE_FILE, "w", encoding="utf-8") as file:
-                json.dump(db, file)
+                json.dump(db, file, indent=2)
             os.remove(DATABASE_BACKUP_FILE)
             return db
         if not os.path.isfile(DATABASE_FILE):
             with open(DATABASE_FILE, "w", encoding="utf-8") as file:
-                json.dump({}, file)
+                json.dump({}, file, indent=2)
         with open(DATABASE_FILE, "r", encoding="utf-8") as file:
             db = json.load(file)
         return db
@@ -77,7 +80,7 @@ class Checker:
             file.write(f"{file_path}: OLD: {data_object} != NEW: {new_object}\n")
         Notify.send("Corruption", file_path)
 
-    def check_integrity(self, file_path, file_hash, modification_time):
+    def check_unchanged(self, file_path, file_hash, modification_time):
         data_object = self.database.get(file_path)
         # Not in database
         if data_object is None:
@@ -97,13 +100,14 @@ class Checker:
             return hashlib.file_digest(f, "sha256").hexdigest()
 
     def save_progress(self):
+        self.log_message(Level.INFO, "Saving progress")
         with open(LATEST_FILE, "w", encoding="utf-8") as file:
             for path in self.handled_files:
                 file.write(f"{path}\n")
         with open(DATABASE_BACKUP_FILE, "w", encoding="utf-8") as file:
             json.dump(self.database, file)
         with open(DATABASE_FILE, "w", encoding="utf-8") as file:
-            json.dump(self.database, file)
+            json.dump(self.database, file, indent=2)
         os.remove(DATABASE_BACKUP_FILE)
         self.last_save_time = datetime.datetime.now()
         self.log_message(Level.INFO, "Saved progress")
@@ -113,13 +117,13 @@ class Checker:
             return
         file_hash = self.hash_file_sha256(file_path)
         modification_time = os.path.getmtime(file_path)
-        is_unchanged = self.check_integrity(file_path, file_hash, modification_time)
+        is_unchanged = self.check_unchanged(file_path, file_hash, modification_time)
         if not is_unchanged:
             self.database[file_path] = create_data_object(file_hash, modification_time)
         self.handled_files.add(file_path)
         if (
             datetime.datetime.now() - self.last_save_time
-        ).total_seconds() > SAVE_FREQUENCY:
+        ).total_seconds() > SAVE_FREQUENCY_SECONDS:
             self.save_progress()
 
     def check_dir(self, dir_path):
@@ -145,7 +149,7 @@ class Checker:
         with open(DATABASE_BACKUP_FILE, "w", encoding="utf-8") as file:
             json.dump(self.database, file)
         with open(DATABASE_FILE, "w", encoding="utf-8") as file:
-            json.dump(new_db, file)
+            json.dump(new_db, file, indent=2)
         os.remove(DATABASE_BACKUP_FILE)
 
     def save_finished(self):
@@ -177,7 +181,7 @@ def check_enough_time_between(days_between):
         try:
             finished_time = datetime.datetime.fromisoformat(finished_time_str.strip())
             time_delta = (datetime.datetime.now() - finished_time).days
-            if time_delta > days_between:
+            if time_delta >= days_between:
                 print(
                     f"There were more than {days_between} days since last run. Starting a new one."
                 )

@@ -1,18 +1,12 @@
-FROM python:3.11-buster
+FROM python:3.14
 
-RUN mkdir /home/scripter
-WORKDIR /home/scripter
+RUN mkdir /app
+WORKDIR /app
 
 COPY *.py ./
 COPY requirements.txt ./
 COPY .env ./
-# COPY data/ ./data/
-# COPY errors/ ./errors/
-# COPY log/ ./log/
 
-RUN pip3.11 install -r requirements.txt
+RUN pip3.14 install -r requirements.txt
 
-ENV FILE_PATH=/media/Data
-ENV DAYS_BETWEEN=14
-
-CMD ["sh", "-c", "python3 CheckIntegrity.py $FILE_PATH $DAYS_BETWEEN"]
+CMD ["sh", "-c", "python3 CheckIntegrity.py /files $DAYS_BETWEEN_RUNS"]

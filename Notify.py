@@ -1,12 +1,24 @@
 import requests
-from Config import PUSHOVER_USER_KEY, PUSHOVER_API_KEY
+from Config import GOTIFY_URL, GOTIFY_TOKEN
 
-URL = "https://api.pushover.net/1/messages.json"
 
 def send(title, message):
-    json_data = {"token": PUSHOVER_API_KEY, "user": PUSHOVER_USER_KEY, "message": message, "title": title, "html": 1}
+    json_data = {
+        "message": message,
+        "title": title,
+        "priority": 5,
+        "extras": {"client::display": {"contentType": "text/markdown"}},
+    }
+    headers = {"Content-type": "application/json"}
     try:
-        request = requests.post(URL, json=json_data)
+        requests.post(
+            f"{GOTIFY_URL}/message",
+            json=json_data,
+            params={"token": GOTIFY_TOKEN},
+            headers=headers,
+            timeout=60,
+        )
         return True
-    except:
+    except requests.exceptions.RequestException as e:
+        print("Error:", e)
         return False
